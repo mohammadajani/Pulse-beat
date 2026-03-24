@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden; /* Removes scrollbars in OBS */
+            font-family: 'Arial', sans-serif; /* Change to any font installed on your PC */
+            display: flex;
+            align-items: center;
+        }
+        #image-container {
+            position: relative;
+            width: 150px; /* Adjust based on your PNG size */
+            height: 150px;
+        }
+        .heart-img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            opacity: 0;
+            /* THIS IS THE SMOOTH CROSSFADE MAGIC */
+            transition: opacity 0.6s ease-in-out; 
+        }
+        .heart-img.active {
+            opacity: 1;
+        }
+        
+        /* The physical pulse animation */
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.15); }
+            100% { transform: scale(1); }
+        }
+        .pulsing {
+            /* JS will change the 1s based on your live BPM */
+            animation: pulse 1s infinite; 
+        }
+        
+        #bpm-text {
+            color: white;
+            font-size: 45px;
+            font-weight: bold;
+            margin-left: 20px;
+            /* Creates a thick black outline so it's readable over Elden Ring gameplay */
+            text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 3px 3px 5px rgba(0,0,0,0.8);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="image-container" class="pulsing">
+        <img id="img-afk" src="afk.png" class="heart-img active">
+        <img id="img-1" src="1.png" class="heart-img">
+        <img id="img-2" src="2.png" class="heart-img">
+        <img id="img-3" src="3.png" class="heart-img">
+        <img id="img-4" src="4.png" class="heart-img">
+        <img id="img-5" src="5.png" class="heart-img">
+    </div>
+    
+    <div id="bpm-text">AFK</div>
+
+    <script>
+        const bpmText = document.getElementById("bpm-text");
+        const container = document.getElementById("image-container");
+        let currentImageId = "img-afk";
+
+        function connect() {
+            // Connect to your local Python script
+            const ws = new WebSocket("ws://localhost:8765");
+
+            ws.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                
+                // 1. Update the Text
+                bpmText.innerText = data.bpm === "AFK" ? "AFK" : data.bpm + " BPM";
+
+                // 2. Crossfade the Image smoothly
+                const targetId = "img-" + data.image.replace('.png', '');
+                if (targetId !== currentImageId) {
+                    document.getElementById(currentImageId).classList.remove("active");
+                    document.getElementById(targetId).classList.add("active");
+                    currentImageId = targetId;
+                }
+
+                // 3. Update the physical pulse speed
+                if (data.bpm !== "AFK" && typeof data.bpm === 'number') {
+                    // Formula: 60 seconds / BPM = seconds per single beat
+                    const secondsPerBeat = 60 / data.bpm;
+                    container.style.animationDuration = secondsPerBeat + "s";
+                } else {
+                    container.style.animationDuration = "0s"; // Stop pulsing if AFK
+                }
+            };
+
+            ws.onclose = function() {
+                bpmText.innerText = "AFK";
+                setTimeout(connect, 2000); // Automatically try to reconnect if Python stops
+            };
+        }
+
+        connect();
+    </script>
+</body>
+</html>
