@@ -1,23 +1,30 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Streamer Dashboard</title>
+    <title>ItsMhaa Stream Control Panel</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #1e1e2e; color: #cdd6f4; padding: 20px; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;}
-        .card { background: #313244; padding: 25px; border-radius: 12px; width: 350px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        h2 { margin-top: 0; color: #89b4fa; border-bottom: 2px solid #45475a; padding-bottom: 10px;}
+        body { font-family: 'Segoe UI', sans-serif; background: #11111b; color: #cdd6f4; padding: 20px 20px 80px 20px; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;}
+        .card { background: #1e1e2e; padding: 25px; border-radius: 12px; width: 350px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); border: 1px solid #313244; }
+        h2 { margin-top: 0; color: #f9e2af; border-bottom: 2px solid #45475a; padding-bottom: 10px;}
+        h3 { color: #89b4fa; margin-bottom: 10px; border-top: 1px solid #313244; padding-top: 10px; }
         .setting-group { margin-bottom: 20px; }
         label { display: block; margin-bottom: 8px; font-weight: bold; }
         input[type="range"] { width: 100%; accent-color: #f38ba8; }
-        select { width: 100%; padding: 8px; border-radius: 6px; background: #1e1e2e; color: white; border: 1px solid #45475a; }
-        .btn { background: #89b4fa; color: #11111b; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 5px;}
+        select { width: 100%; padding: 8px; border-radius: 6px; background: #11111b; color: white; border: 1px solid #45475a; }
+        .btn { background: #89b4fa; color: #11111b; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 5px; font-size: 15px;}
         .btn-connect { background: #a6e3a1; }
         .btn-disconnect { background: #f38ba8; }
         .btn:hover { filter: brightness(1.1); }
+        .btn-save { background: #f9e2af; color: #11111b; margin-top: 20px; padding: 12px; font-size: 16px;}
         
-        #status-box { background: #1e1e2e; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px;}
+        #status-box { background: #11111b; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; border: 1px solid #313244;}
         #ble-status { font-weight: bold; font-size: 18px; margin-bottom: 5px; }
         #live-bpm { font-size: 30px; font-weight: bold; color: #f38ba8; }
+        .value-display { float: right; color: #a6adc8; font-weight: normal; }
+        
+        footer { position: fixed; bottom: 0; left: 0; width: 100%; background: #181825; padding: 15px 0; text-align: center; border-top: 1px solid #313244; color: #a6adc8;}
+        footer a { color: #f9e2af; text-decoration: none; font-weight: bold; }
+        footer a:hover { color: #f38ba8; text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -29,12 +36,12 @@
         <div id="live-bpm">AFK</div>
     </div>
     
-    <button class="btn btn-connect" onclick="sendBleCommand('connect')">Connect / Retry</button>
+    <button class="btn btn-connect" onclick="sendBleCommand('connect')">Connect Watch (Retry)</button>
     <button class="btn btn-disconnect" onclick="sendBleCommand('disconnect')">Disconnect</button>
 </div>
 
 <div class="card">
-    <h2>Overlay Settings</h2>
+    <h2>Layout & Styling</h2>
     
     <div class="setting-group">
         <label><input type="checkbox" id="showImage" checked> Show Heart Image</label>
@@ -42,21 +49,56 @@
     </div>
 
     <div class="setting-group">
-        <label>Animation Style</label>
-        <select id="animationType">
-            <option value="none">No Animation</option>
-            <option value="pulse">Simple Pulse</option>
-            <option value="heartbeat">Realistic Double-Beat</option>
+        <label>Overall Layout Position</label>
+        <select id="overlayLayout">
+            <option value="row">Text on Right</option>
+            <option value="row-reverse">Text on Left</option>
+            <option value="column">Text on Bottom</option>
+            <option value="column-reverse">Text on Top</option>
+            <option value="center">Stacked (Overlay)</option>
         </select>
+    </div>
+
+    <div class="setting-group">
+        <label>Font Size (<span id="fontSizeVal">45</span>px)</label>
+        <input type="range" id="fontSize" min="20" max="100" value="45" oninput="document.getElementById('fontSizeVal').innerText = this.value">
     </div>
 
     <div class="setting-group">
         <label>Image Size (<span id="sizeVal">150</span>px)</label>
         <input type="range" id="size" min="50" max="400" value="150" oninput="document.getElementById('sizeVal').innerText = this.value">
     </div>
-
-    <button class="btn" onclick="saveSettings()">Apply to OBS</button>
+    
+    <div class="setting-group">
+        <label>Text-to-Heart Spacing (<span id="spacingVal">20</span>px)</label>
+        <input type="range" id="elementSpacing" min="0" max="100" value="20" oninput="document.getElementById('spacingVal').innerText = this.value">
+    </div>
 </div>
+
+<div class="card">
+    <h2>Animations</h2>
+    <div class="setting-group">
+        <label>Animation Style</label>
+        <select id="animationType">
+            <option value="none">No Animation</option>
+            <option value="pulse">Simple Pulse</option>
+            <option value="heartbeat">Realistic Double-Beat</option>
+            <option value="bounce">Bouncy Thump</option>
+            <option value="jiggle">Nervous Jiggle</option>
+        </select>
+    </div>
+
+    <div class="setting-group">
+        <label>Custom Beat Intensity (<span id="intensityVal">1.15</span>x)</label>
+        <input type="range" id="animScaleIntensity" min="1.0" max="2.0" step="0.01" value="1.15" oninput="document.getElementById('intensityVal').innerText = this.value">
+    </div>
+
+    <button class="btn btn-save" onclick="saveSettings()">Apply ProItsMhaa Settings</button>
+</div>
+
+<footer>
+    Created for the Tarnished <a href="https://www.youtube.com/@ItsProMhaa" target="_blank">ItsMhaa</a>
+</footer>
 
 <script>
     let ws;
@@ -67,11 +109,24 @@
             const data = JSON.parse(event.data);
             
             if (data.type === "config_update") {
-                document.getElementById("size").value = data.config.size;
+                // Populate all sliders/dropdowns from saved config
+                ['size', 'fontSize', 'elementSpacing', 'animationType'].forEach(id => {
+                    document.getElementById(id).value = data.config[id];
+                });
+                
+                // Set the sliders that are floats/specific intensities
+                document.getElementById('animScaleIntensity').value = data.config.animScaleIntensity;
+
+                // Update text displays
                 document.getElementById("sizeVal").innerText = data.config.size;
+                document.getElementById("fontSizeVal").innerText = data.config.fontSize;
+                document.getElementById("spacingVal").innerText = data.config.elementSpacing;
+                document.getElementById("intensityVal").innerText = data.config.animScaleIntensity;
+                
+                // Handle checkboxes
                 document.getElementById("showImage").checked = data.config.showImage;
                 document.getElementById("showText").checked = data.config.showText;
-                document.getElementById("animationType").value = data.config.animationType;
+                document.getElementById("overlayLayout").value = data.config.overlayLayout;
             } 
             else if (data.type === "bpm_update") {
                 document.getElementById("live-bpm").innerText = data.bpm === "AFK" ? "AFK" : data.bpm + " BPM";
@@ -93,9 +148,13 @@
         if (ws) {
             ws.send(JSON.stringify({ type: "save_settings", config: {
                 size: parseInt(document.getElementById("size").value),
+                fontSize: parseInt(document.getElementById("fontSize").value),
+                elementSpacing: parseInt(document.getElementById("elementSpacing").value),
                 showImage: document.getElementById("showImage").checked,
                 showText: document.getElementById("showText").checked,
-                animationType: document.getElementById("animationType").value
+                overlayLayout: document.getElementById("overlayLayout").value,
+                animationType: document.getElementById("animationType").value,
+                animScaleIntensity: parseFloat(document.getElementById("animScaleIntensity").value)
             }}));
         }
     }

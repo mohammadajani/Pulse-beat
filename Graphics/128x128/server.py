@@ -8,18 +8,23 @@ from bleak import BleakClient
 ADDRESS = "E4:61:9F:DB:72:56"
 HR_UUID = "00002a37-0000-1000-8000-00805f9b34fb"
 
-CONFIG_FILE = "config.json"
+CONFIG_FILE = "config_pro.json"
 CLIENTS = set()
 current_bpm = "AFK"
 ble_client = None
 ble_connecting = False
 
-# New expanded default settings
+# Pro Default Settings - Updated for Layout and Animations
 config = {
     "size": 150,
+    "fontSize": 45,
     "showText": True,
     "showImage": True,
-    "animationType": "heartbeat" # Options: none, pulse, heartbeat
+    # Layout options: 'row' (Text Right), 'row-reverse' (Left), 'column' (Bottom), 'column-reverse' (Top), 'center' (Stacked)
+    "overlayLayout": "row", 
+    "elementSpacing": 20, # Spacing between text and image
+    "animationType": "heartbeat", # none, pulse, heartbeat, bounce, jiggle
+    "animScaleIntensity": 1.15 # Controls how much the heart expands on a beat (1.0 to 2.0)
 }
 
 if os.path.exists(CONFIG_FILE):
@@ -58,7 +63,7 @@ async def manage_bluetooth(action):
         except Exception as e:
             ble_connecting = False
             current_bpm = "AFK"
-            await broadcast({"type": "status_update", "status": f"Failed (Try Again)", "color": "#f38ba8"})
+            await broadcast({"type": "status_update", "status": f"Failed (Retry)", "color": "#f38ba8"})
             if ble_client:
                 await ble_client.disconnect()
                 
@@ -87,7 +92,6 @@ async def broadcast_loop():
 async def ws_handler(websocket):
     CLIENTS.add(websocket)
     
-    # Send current state on connect
     await websocket.send(json.dumps({"type": "config_update", "config": config}))
     status_msg = "Connected" if (ble_client and ble_client.is_connected) else ("Connecting..." if ble_connecting else "Disconnected")
     color = "#a6e3a1" if status_msg == "Connected" else ("#f9e2af" if status_msg == "Connecting..." else "#f38ba8")
@@ -108,7 +112,7 @@ async def ws_handler(websocket):
         CLIENTS.remove(websocket)
 
 async def main():
-    print("Server running on ws://localhost:8765. Open your dashboard.html!")
+    print(f"Server ProItsMhaa running. Fight well. Open dashboard.html.")
     server = await websockets.serve(ws_handler, "localhost", 8765)
     asyncio.create_task(broadcast_loop())
     await asyncio.Future()
