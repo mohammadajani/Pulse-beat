@@ -2,57 +2,38 @@
 <html>
 <head>
     <style>
-        body {
-            margin: 0;
-            overflow: hidden; /* Removes scrollbars in OBS */
-            font-family: 'Arial', sans-serif; /* Change to any font installed on your PC */
-            display: flex;
-            align-items: center;
-        }
-        #image-container {
-            position: relative;
-            width: 150px; /* Adjust based on your PNG size */
-            height: 150px;
-        }
-        .heart-img {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: contain;
-            opacity: 0;
-            /* THIS IS THE SMOOTH CROSSFADE MAGIC */
-            transition: opacity 0.6s ease-in-out; 
-        }
-        .heart-img.active {
-            opacity: 1;
-        }
+        body { margin: 0; overflow: hidden; font-family: 'Arial', sans-serif; display: flex; align-items: center; }
         
-        /* The physical pulse animation */
-        @keyframes pulse {
+        #image-container { position: relative; transition: width 0.3s, height 0.3s; }
+        .heart-img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity 0.4s ease-in-out; }
+        .heart-img.active { opacity: 1; }
+        
+        /* Animation 1: Simple Pulse */
+        @keyframes anim-pulse {
             0% { transform: scale(1); }
             50% { transform: scale(1.15); }
             100% { transform: scale(1); }
         }
-        .pulsing {
-            /* JS will change the 1s based on your live BPM */
-            animation: pulse 1s infinite; 
+        
+        /* Animation 2: Realistic Double Heartbeat */
+        @keyframes anim-heartbeat {
+            0% { transform: scale(1); }
+            15% { transform: scale(1.15); }
+            30% { transform: scale(1); }
+            45% { transform: scale(1.15); }
+            70% { transform: scale(1); }
+            100% { transform: scale(1); }
         }
         
         #bpm-text {
-            color: white;
-            font-size: 45px;
-            font-weight: bold;
-            margin-left: 20px;
-            /* Creates a thick black outline so it's readable over Elden Ring gameplay */
+            color: white; font-size: 45px; font-weight: bold; margin-left: 20px;
             text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 3px 3px 5px rgba(0,0,0,0.8);
         }
     </style>
 </head>
 <body>
 
-    <div id="image-container" class="pulsing">
+    <div id="image-container">
         <img id="img-afk" src="afk.png" class="heart-img active">
         <img id="img-1" src="1.png" class="heart-img">
         <img id="img-2" src="2.png" class="heart-img">
@@ -67,39 +48,52 @@
         const bpmText = document.getElementById("bpm-text");
         const container = document.getElementById("image-container");
         let currentImageId = "img-afk";
+        let config = {};
 
         function connect() {
-            // Connect to your local Python script
             const ws = new WebSocket("ws://localhost:8765");
 
             ws.onmessage = function(event) {
                 const data = JSON.parse(event.data);
                 
-                // 1. Update the Text
-                bpmText.innerText = data.bpm === "AFK" ? "AFK" : data.bpm + " BPM";
-
-                // 2. Crossfade the Image smoothly
-                const targetId = "img-" + data.image.replace('.png', '');
-                if (targetId !== currentImageId) {
-                    document.getElementById(currentImageId).classList.remove("active");
-                    document.getElementById(targetId).classList.add("active");
-                    currentImageId = targetId;
+                if (data.type === "config_update") {
+                    config = data.config;
+                    
+                    // Apply visual toggles
+                    container.style.display = config.showImage ? "block" : "none";
+                    bpmText.style.display = config.showText ? "block" : "none";
+                    
+                    // Apply sizes
+                    container.style.width = config.size + "px";
+                    container.style.height = config.size + "px";
+                    
+                    // Kill animation if set to none
+                    if (config.animationType === "none") {
+                        container.style.animation = "none";
+                    }
                 }
+                
+                if (data.type === "bpm_update") {
+                    bpmText.innerText = data.bpm === "AFK" ? "AFK" : data.bpm + " BPM";
 
-                // 3. Update the physical pulse speed
-                if (data.bpm !== "AFK" && typeof data.bpm === 'number') {
-                    // Formula: 60 seconds / BPM = seconds per single beat
-                    const secondsPerBeat = 60 / data.bpm;
-                    container.style.animationDuration = secondsPerBeat + "s";
-                } else {
-                    container.style.animationDuration = "0s"; // Stop pulsing if AFK
+                    const targetId = "img-" + data.image.replace('.png', '');
+                    if (targetId !== currentImageId) {
+                        document.getElementById(currentImageId).classList.remove("active");
+                        document.getElementById(targetId).classList.add("active");
+                        currentImageId = targetId;
+                    }
+
+                    // Handle dynamic animations based on config and live BPM
+                    if (config.animationType !== "none" && data.bpm !== "AFK" && typeof data.bpm === 'number') {
+                        const secondsPerBeat = 60 / data.bpm;
+                        container.style.animation = `anim-${config.animationType} ${secondsPerBeat}s infinite`;
+                    } else if (data.bpm === "AFK" || config.animationType === "none") {
+                        container.style.animation = "none";
+                    }
                 }
             };
 
-            ws.onclose = function() {
-                bpmText.innerText = "AFK";
-                setTimeout(connect, 2000); // Automatically try to reconnect if Python stops
-            };
+            ws.onclose = () => setTimeout(connect, 2000);
         }
 
         connect();

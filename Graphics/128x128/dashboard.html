@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Streamer Dashboard</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #1e1e2e; color: #cdd6f4; padding: 20px; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;}
+        .card { background: #313244; padding: 25px; border-radius: 12px; width: 350px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        h2 { margin-top: 0; color: #89b4fa; border-bottom: 2px solid #45475a; padding-bottom: 10px;}
+        .setting-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; }
+        input[type="range"] { width: 100%; accent-color: #f38ba8; }
+        select { width: 100%; padding: 8px; border-radius: 6px; background: #1e1e2e; color: white; border: 1px solid #45475a; }
+        .btn { background: #89b4fa; color: #11111b; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 5px;}
+        .btn-connect { background: #a6e3a1; }
+        .btn-disconnect { background: #f38ba8; }
+        .btn:hover { filter: brightness(1.1); }
+        
+        #status-box { background: #1e1e2e; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px;}
+        #ble-status { font-weight: bold; font-size: 18px; margin-bottom: 5px; }
+        #live-bpm { font-size: 30px; font-weight: bold; color: #f38ba8; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Device Control</h2>
+    <div id="status-box">
+        <div id="ble-status" style="color: #f38ba8;">🔴 Disconnected</div>
+        <div id="live-bpm">AFK</div>
+    </div>
+    
+    <button class="btn btn-connect" onclick="sendBleCommand('connect')">Connect / Retry</button>
+    <button class="btn btn-disconnect" onclick="sendBleCommand('disconnect')">Disconnect</button>
+</div>
+
+<div class="card">
+    <h2>Overlay Settings</h2>
+    
+    <div class="setting-group">
+        <label><input type="checkbox" id="showImage" checked> Show Heart Image</label>
+        <label><input type="checkbox" id="showText" checked> Show BPM Text</label>
+    </div>
+
+    <div class="setting-group">
+        <label>Animation Style</label>
+        <select id="animationType">
+            <option value="none">No Animation</option>
+            <option value="pulse">Simple Pulse</option>
+            <option value="heartbeat">Realistic Double-Beat</option>
+        </select>
+    </div>
+
+    <div class="setting-group">
+        <label>Image Size (<span id="sizeVal">150</span>px)</label>
+        <input type="range" id="size" min="50" max="400" value="150" oninput="document.getElementById('sizeVal').innerText = this.value">
+    </div>
+
+    <button class="btn" onclick="saveSettings()">Apply to OBS</button>
+</div>
+
+<script>
+    let ws;
+    
+    function connect() {
+        ws = new WebSocket("ws://localhost:8765");
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            if (data.type === "config_update") {
+                document.getElementById("size").value = data.config.size;
+                document.getElementById("sizeVal").innerText = data.config.size;
+                document.getElementById("showImage").checked = data.config.showImage;
+                document.getElementById("showText").checked = data.config.showText;
+                document.getElementById("animationType").value = data.config.animationType;
+            } 
+            else if (data.type === "bpm_update") {
+                document.getElementById("live-bpm").innerText = data.bpm === "AFK" ? "AFK" : data.bpm + " BPM";
+            }
+            else if (data.type === "status_update") {
+                const statusEl = document.getElementById("ble-status");
+                statusEl.innerText = data.status;
+                statusEl.style.color = data.color;
+            }
+        };
+        ws.onclose = () => setTimeout(connect, 2000);
+    }
+
+    function sendBleCommand(action) {
+        if (ws) ws.send(JSON.stringify({ type: "ble_command", action: action }));
+    }
+
+    function saveSettings() {
+        if (ws) {
+            ws.send(JSON.stringify({ type: "save_settings", config: {
+                size: parseInt(document.getElementById("size").value),
+                showImage: document.getElementById("showImage").checked,
+                showText: document.getElementById("showText").checked,
+                animationType: document.getElementById("animationType").value
+            }}));
+        }
+    }
+
+    connect();
+</script>
+
+</body>
+</html>
