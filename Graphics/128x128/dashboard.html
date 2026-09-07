@@ -3,130 +3,215 @@
 <head>
     <title>ItsMhaa Stream Control Panel</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #11111b; color: #cdd6f4; padding: 20px 20px 80px 20px; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;}
-        .card { background: #1e1e2e; padding: 25px; border-radius: 12px; width: 350px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); border: 1px solid #313244; }
+        /* --- CSS RESET & BASE --- */
+        body { font-family: 'Segoe UI', sans-serif; background: #11111b; color: #cdd6f4; margin: 0; padding: 20px 20px 80px 20px; }
+        
+        /* --- THE FIX: STRICT ALIGNMENT WRAPPERS --- */
+        .app-container { max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+        .cards-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; }
+
+        /* --- CARD STYLES --- */
+        .card { background: #1e1e2e; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); border: 1px solid #313244; box-sizing: border-box; width: 100%; }
+        .expert-card { border: 1px solid #f38ba8; display: none; } /* Hidden by default */
+        
         h2 { margin-top: 0; color: #f9e2af; border-bottom: 2px solid #45475a; padding-bottom: 10px;}
-        h3 { color: #89b4fa; margin-bottom: 10px; border-top: 1px solid #313244; padding-top: 10px; }
+        .expert-card h2 { color: #f38ba8; }
         .setting-group { margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; font-weight: bold; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 14px;}
         input[type="range"] { width: 100%; accent-color: #f38ba8; }
-        select { width: 100%; padding: 8px; border-radius: 6px; background: #11111b; color: white; border: 1px solid #45475a; }
+        input[type="text"], select { width: 100%; padding: 8px; border-radius: 6px; background: #11111b; color: white; border: 1px solid #45475a; box-sizing: border-box;}
+        
+        /* --- BUTTONS --- */
         .btn { background: #89b4fa; color: #11111b; border: none; padding: 10px; border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; margin-top: 5px; font-size: 15px;}
         .btn-connect { background: #a6e3a1; }
         .btn-disconnect { background: #f38ba8; }
         .btn:hover { filter: brightness(1.1); }
         .btn-save { background: #f9e2af; color: #11111b; margin-top: 20px; padding: 12px; font-size: 16px;}
         
+        /* --- STATUS ELEMENTS --- */
         #status-box { background: #11111b; padding: 15px; border-radius: 8px; text-align: center; margin-bottom: 20px; border: 1px solid #313244;}
         #ble-status { font-weight: bold; font-size: 18px; margin-bottom: 5px; }
         #live-bpm { font-size: 30px; font-weight: bold; color: #f38ba8; }
         .value-display { float: right; color: #a6adc8; font-weight: normal; }
         
-        footer { position: fixed; bottom: 0; left: 0; width: 100%; background: #181825; padding: 15px 0; text-align: center; border-top: 1px solid #313244; color: #a6adc8;}
+        /* --- TOP TOGGLES --- */
+        .toggle-container { display: flex; justify-content: flex-end; gap: 10px; width: 100%; }
+        .top-toggle { background: #313244; color: #cdd6f4; border: 1px solid #45475a; padding: 8px 15px; border-radius: 20px; cursor: pointer; font-size: 12px; font-weight: bold;}
+        .top-toggle:hover { background: #45475a; }
+        
+        /* --- CONSOLE STYLES --- */
+        .console-container { width: 100%; display: none; margin-top: 10px; }
+        .console-box { background: #000; border: 1px solid #45475a; border-radius: 8px; padding: 15px; font-family: 'Courier New', monospace; font-size: 13px; color: #a6e3a1; height: 180px; overflow-y: auto; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); }
+        .log-time { color: #89b4fa; margin-right: 8px; }
+        .log-err { color: #f38ba8; }
+        
+        /* --- FOOTER --- */
+        footer { position: fixed; bottom: 0; left: 0; width: 100%; background: #181825; padding: 15px 0; text-align: center; border-top: 1px solid #313244; color: #a6adc8; z-index: 100;}
         footer a { color: #f9e2af; text-decoration: none; font-weight: bold; }
         footer a:hover { color: #f38ba8; text-decoration: underline; }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .cards-grid { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <h2>Device Control</h2>
-    <div id="status-box">
-        <div id="ble-status" style="color: #f38ba8;">🔴 Disconnected</div>
-        <div id="live-bpm">AFK</div>
-    </div>
-    
-    <button class="btn btn-connect" onclick="sendBleCommand('connect')">Connect Watch (Retry)</button>
-    <button class="btn btn-disconnect" onclick="sendBleCommand('disconnect')">Disconnect</button>
-</div>
+<div class="app-container">
 
-<div class="card">
-    <h2>Layout & Styling</h2>
-    
-    <div class="setting-group">
-        <label><input type="checkbox" id="showImage" checked> Show Heart Image</label>
-        <label><input type="checkbox" id="showText" checked> Show BPM Text</label>
+    <div class="toggle-container">
+        <button class="top-toggle" onclick="toggleConsole()">🖥️ Toggle Debug Console</button>
+        <button class="top-toggle" onclick="toggleExpertMode()">⚙️ Toggle Expert Mode</button>
     </div>
 
-    <div class="setting-group">
-        <label>Overall Layout Position</label>
-        <select id="overlayLayout">
-            <option value="row">Text on Right</option>
-            <option value="row-reverse">Text on Left</option>
-            <option value="column">Text on Bottom</option>
-            <option value="column-reverse">Text on Top</option>
-            <option value="center">Stacked (Overlay)</option>
-        </select>
+    <div class="cards-grid">
+        
+        <div class="card">
+            <h2>Device Control</h2>
+            <div id="status-box">
+                <div id="ble-status" style="color: #f38ba8;">🔴 Disconnected</div>
+                <div id="live-bpm">AFK</div>
+            </div>
+            <button class="btn btn-connect" onclick="sendBleCommand('connect')">Connect Watch (Retry)</button>
+            <button class="btn btn-disconnect" onclick="sendBleCommand('disconnect')">Disconnect</button>
+        </div>
+
+        <div class="card">
+            <h2>Layout & Styling</h2>
+            <div class="setting-group">
+                <label><input type="checkbox" id="showImage"> Show Heart Image</label>
+                <label><input type="checkbox" id="showText"> Show BPM Text</label>
+            </div>
+            <div class="setting-group">
+                <label>Overall Layout Position</label>
+                <select id="overlayLayout">
+                    <option value="row">Text on Right</option>
+                    <option value="row-reverse">Text on Left</option>
+                    <option value="column">Text on Bottom</option>
+                    <option value="column-reverse">Text on Top</option>
+                    <option value="center">Stacked (Overlay)</option>
+                </select>
+            </div>
+            <div class="setting-group">
+                <label>Font Size (<span id="fontSizeVal">45</span>px)</label>
+                <input type="range" id="fontSize" min="20" max="100" oninput="document.getElementById('fontSizeVal').innerText = this.value">
+            </div>
+            <div class="setting-group">
+                <label>Image Size (<span id="sizeVal">150</span>px)</label>
+                <input type="range" id="size" min="50" max="400" oninput="document.getElementById('sizeVal').innerText = this.value">
+            </div>
+            <div class="setting-group">
+                <label>Text-to-Heart Spacing (<span id="spacingVal">20</span>px)</label>
+                <input type="range" id="elementSpacing" min="0" max="100" oninput="document.getElementById('spacingVal').innerText = this.value">
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Animations</h2>
+            <div class="setting-group">
+                <label>Animation Style</label>
+                <select id="animationType">
+                    <option value="none">No Animation</option>
+                    <option value="pulse">Simple Pulse</option>
+                    <option value="heartbeat">Realistic Double-Beat</option>
+                    <option value="bounce">Bouncy Thump</option>
+                    <option value="jiggle">Nervous Jiggle</option>
+                </select>
+            </div>
+            <div class="setting-group">
+                <label>Custom Beat Intensity (<span id="intensityVal">1.15</span>x)</label>
+                <input type="range" id="animScaleIntensity" min="1.0" max="2.0" step="0.01" oninput="document.getElementById('intensityVal').innerText = this.value">
+            </div>
+            <button class="btn btn-save" onclick="saveSettings()">Apply ProItsMhaa Settings</button>
+        </div>
+
+        <div class="card expert-card" id="expertSection">
+            <h2>Expert Configuration</h2>
+            <div class="setting-group">
+                <label>Watch MAC Address</label>
+                <input type="text" id="macAddress" placeholder="XX:XX:XX:XX:XX:XX">
+            </div>
+            <div class="setting-group">
+                <label>Image Path: AFK</label>
+                <input type="text" id="imgAfk">
+            </div>
+            <div class="setting-group">
+                <label>Image Path: Tier 1 (< 80 BPM)</label>
+                <input type="text" id="img1">
+            </div>
+            <div class="setting-group">
+                <label>Image Path: Tier 2 (80-89 BPM)</label>
+                <input type="text" id="img2">
+            </div>
+            <div class="setting-group">
+                <label>Image Path: Tier 3 (90-99 BPM)</label>
+                <input type="text" id="img3">
+            </div>
+            <div class="setting-group">
+                <label>Image Path: Tier 4 (100-109 BPM)</label>
+                <input type="text" id="img4">
+            </div>
+            <div class="setting-group">
+                <label>Image Path: Tier 5 (110+ BPM)</label>
+                <input type="text" id="img5">
+            </div>
+        </div>
+
+    </div> <div class="console-container" id="consoleSection">
+        <h3 style="color: #a6adc8; margin-top: 0; font-size: 14px;">Terminal Output</h3>
+        <div class="console-box" id="debugConsole">
+            <div><span class="log-time">[System]</span> Dashboard Interface Loaded. Awaiting connection...</div>
+        </div>
     </div>
 
-    <div class="setting-group">
-        <label>Font Size (<span id="fontSizeVal">45</span>px)</label>
-        <input type="range" id="fontSize" min="20" max="100" value="45" oninput="document.getElementById('fontSizeVal').innerText = this.value">
-    </div>
-
-    <div class="setting-group">
-        <label>Image Size (<span id="sizeVal">150</span>px)</label>
-        <input type="range" id="size" min="50" max="400" value="150" oninput="document.getElementById('sizeVal').innerText = this.value">
-    </div>
-    
-    <div class="setting-group">
-        <label>Text-to-Heart Spacing (<span id="spacingVal">20</span>px)</label>
-        <input type="range" id="elementSpacing" min="0" max="100" value="20" oninput="document.getElementById('spacingVal').innerText = this.value">
-    </div>
-</div>
-
-<div class="card">
-    <h2>Animations</h2>
-    <div class="setting-group">
-        <label>Animation Style</label>
-        <select id="animationType">
-            <option value="none">No Animation</option>
-            <option value="pulse">Simple Pulse</option>
-            <option value="heartbeat">Realistic Double-Beat</option>
-            <option value="bounce">Bouncy Thump</option>
-            <option value="jiggle">Nervous Jiggle</option>
-        </select>
-    </div>
-
-    <div class="setting-group">
-        <label>Custom Beat Intensity (<span id="intensityVal">1.15</span>x)</label>
-        <input type="range" id="animScaleIntensity" min="1.0" max="2.0" step="0.01" value="1.15" oninput="document.getElementById('intensityVal').innerText = this.value">
-    </div>
-
-    <button class="btn btn-save" onclick="saveSettings()">Apply ProItsMhaa Settings</button>
-</div>
-
-<footer>
+</div> <footer>
     Created for the Tarnished <a href="https://www.youtube.com/@ItsProMhaa" target="_blank">ItsMhaa</a>
 </footer>
 
 <script>
     let ws;
+    const consoleBox = document.getElementById("debugConsole");
     
+    function toggleExpertMode() {
+        const el = document.getElementById("expertSection");
+        el.style.display = el.style.display === "block" ? "none" : "block";
+    }
+    
+    function toggleConsole() {
+        const el = document.getElementById("consoleSection");
+        el.style.display = el.style.display === "block" ? "none" : "block";
+    }
+
+    function addLog(msg) {
+        const time = new Date().toLocaleTimeString([], { hour12: false });
+        const isError = msg.toUpperCase().includes("ERROR") || msg.toUpperCase().includes("FAILED");
+        const msgClass = isError ? "log-err" : "";
+        consoleBox.innerHTML += `<div><span class="log-time">[${time}]</span> <span class="${msgClass}">${msg}</span></div>`;
+        consoleBox.scrollTop = consoleBox.scrollHeight;
+    }
+
     function connect() {
         ws = new WebSocket("ws://localhost:8765");
+        ws.onopen = () => addLog("WebSocket Connected to Server.");
+        
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
             
-            if (data.type === "config_update") {
-                // Populate all sliders/dropdowns from saved config
-                ['size', 'fontSize', 'elementSpacing', 'animationType'].forEach(id => {
-                    document.getElementById(id).value = data.config[id];
+            if (data.type === "console_log") {
+                addLog(data.message);
+            }
+            else if (data.type === "config_update") {
+                ['macAddress', 'imgAfk', 'img1', 'img2', 'img3', 'img4', 'img5', 'size', 'fontSize', 'elementSpacing', 'animationType', 'overlayLayout'].forEach(id => {
+                    if (document.getElementById(id)) document.getElementById(id).value = data.config[id];
                 });
-                
-                // Set the sliders that are floats/specific intensities
                 document.getElementById('animScaleIntensity').value = data.config.animScaleIntensity;
-
-                // Update text displays
                 document.getElementById("sizeVal").innerText = data.config.size;
                 document.getElementById("fontSizeVal").innerText = data.config.fontSize;
                 document.getElementById("spacingVal").innerText = data.config.elementSpacing;
                 document.getElementById("intensityVal").innerText = data.config.animScaleIntensity;
-                
-                // Handle checkboxes
                 document.getElementById("showImage").checked = data.config.showImage;
                 document.getElementById("showText").checked = data.config.showText;
-                document.getElementById("overlayLayout").value = data.config.overlayLayout;
             } 
             else if (data.type === "bpm_update") {
                 document.getElementById("live-bpm").innerText = data.bpm === "AFK" ? "AFK" : data.bpm + " BPM";
@@ -137,7 +222,11 @@
                 statusEl.style.color = data.color;
             }
         };
-        ws.onclose = () => setTimeout(connect, 2000);
+        
+        ws.onclose = () => {
+            addLog("ERROR: WebSocket Disconnected. Server closed or crashed. Retrying in 2s...");
+            setTimeout(connect, 2000);
+        };
     }
 
     function sendBleCommand(action) {
@@ -147,6 +236,13 @@
     function saveSettings() {
         if (ws) {
             ws.send(JSON.stringify({ type: "save_settings", config: {
+                macAddress: document.getElementById("macAddress").value,
+                imgAfk: document.getElementById("imgAfk").value,
+                img1: document.getElementById("img1").value,
+                img2: document.getElementById("img2").value,
+                img3: document.getElementById("img3").value,
+                img4: document.getElementById("img4").value,
+                img5: document.getElementById("img5").value,
                 size: parseInt(document.getElementById("size").value),
                 fontSize: parseInt(document.getElementById("fontSize").value),
                 elementSpacing: parseInt(document.getElementById("elementSpacing").value),
@@ -161,6 +257,5 @@
 
     connect();
 </script>
-
 </body>
 </html>

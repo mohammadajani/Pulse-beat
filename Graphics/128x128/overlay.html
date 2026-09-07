@@ -2,96 +2,31 @@
 <html>
 <head>
     <style>
-        :root {
-            /* These variables are overwritten live by Javascript */
-            --main-scale-intensity: 1.15;
-        }
-
-        body { 
-            margin: 0; 
-            overflow: hidden; 
-            font-family: 'Arial', sans-serif; 
-            display: flex; 
-            /* Flex properties controlled live based on config.overlayLayout */
-            align-items: center; 
-            justify-content: flex-start;
-        }
-        
-        #image-container { 
-            position: relative; 
-            transition: width 0.3s, height 0.3s, margin 0.3s; 
-            /* Allows stacked layout when body is center */
-            flex-shrink: 0;
-        }
-        
+        :root { --main-scale-intensity: 1.15; }
+        body { margin: 0; overflow: hidden; font-family: 'Arial', sans-serif; display: flex; align-items: center; justify-content: flex-start; }
+        #image-container { position: relative; transition: width 0.3s, height 0.3s, margin 0.3s; flex-shrink: 0; }
         .heart-img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: contain; opacity: 0; transition: opacity 0.4s ease-in-out; }
         .heart-img.active { opacity: 1; }
+        .pulse-container { transform-origin: center center; }
+
+        @keyframes anim-pulse { 0% { transform: scale(1); } 50% { transform: scale(var(--main-scale-intensity)); } 100% { transform: scale(1); } }
+        @keyframes anim-heartbeat { 0% { transform: scale(1); } 15% { transform: scale(var(--main-scale-intensity)); } 30% { transform: scale(1); } 45% { transform: scale(var(--main-scale-intensity)); } 70% { transform: scale(1); } 100% { transform: scale(1); } }
+        @keyframes anim-bounce { 0%, 20%, 50%, 80%, 100% {transform: translateY(0) scale(1);} 40% {transform: translateY(-10px) scale(var(--main-scale-intensity));} 60% {transform: translateY(-5px) scale(var(--main-scale-intensity));} }
+        @keyframes anim-jiggle { 0% { transform: translate(1px, 1px) scale(1); } 10% { transform: translate(-1px, -2px) scale(var(--main-scale-intensity)); } 20% { transform: translate(-3px, 0px) scale(var(--main-scale-intensity)); } 30% { transform: translate(3px, 2px) scale(var(--main-scale-intensity)); } 40% { transform: translate(1px, -1px) scale(1); } 50% { transform: translate(-1px, 2px) scale(var(--main-scale-intensity)); } 60% { transform: translate(-3px, 1px) scale(var(--main-scale-intensity)); } 100% { transform: translate(1px, 1px) scale(1); } }
         
-        /* The heart container is the element that scales/beats faster */
-        .pulse-container {
-            /* JS will change the anim speed/name live */
-            transform-origin: center center;
-        }
-
-        /* --- New Expanded Animations --- */
-
-        /* 1. Simple Pulse: Scales up smoothly based on custom intensity slider */
-        @keyframes anim-pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(var(--main-scale-intensity)); }
-            100% { transform: scale(1); }
-        }
-        
-        /* 2. Realistic Double Heartbeat: Thump-thump, pause. Custom intensity slider applied to beats */
-        @keyframes anim-heartbeat {
-            0% { transform: scale(1); }
-            15% { transform: scale(var(--main-scale-intensity)); }
-            30% { transform: scale(1); }
-            45% { transform: scale(var(--main-scale-intensity)); }
-            70% { transform: scale(1); }
-            100% { transform: scale(1); }
-        }
-
-        /* 3. Bouncy Thump: Quickly thumps up and snaps back. Slider affects thump height */
-        @keyframes anim-bounce {
-            0%, 20%, 50%, 80%, 100% {transform: translateY(0) scale(1);}
-            40% {transform: translateY(-10px) scale(var(--main-scale-intensity));}
-            60% {transform: translateY(-5px) scale(var(--main-scale-intensity));}
-        }
-
-        /* 4. Nervous Jiggle: Shakes rapidly on beat. Slider affects scale expansion */
-        @keyframes anim-jiggle {
-            0% { transform: translate(1px, 1px) scale(1); }
-            10% { transform: translate(-1px, -2px) scale(var(--main-scale-intensity)); }
-            20% { transform: translate(-3px, 0px) scale(var(--main-scale-intensity)); }
-            30% { transform: translate(3px, 2px) scale(var(--main-scale-intensity)); }
-            40% { transform: translate(1px, -1px) scale(1); }
-            50% { transform: translate(-1px, 2px) scale(var(--main-scale-intensity)); }
-            60% { transform: translate(-3px, 1px) scale(var(--main-scale-intensity)); }
-            100% { transform: translate(1px, 1px) scale(1); }
-        }
-        
-        #bpm-text {
-            color: white; 
-            font-weight: bold; 
-            transition: font-size 0.3s, margin 0.3s;
-            /* Creates the thick black ItsMhaa outline branding */
-            text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 3px 3px 5px rgba(0,0,0,0.8);
-            /* Essential for stacked layout */
-            z-index: 10;
-        }
+        #bpm-text { color: white; font-weight: bold; transition: font-size 0.3s, margin 0.3s; text-shadow: 2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 3px 3px 5px rgba(0,0,0,0.8); z-index: 10; }
     </style>
 </head>
 <body>
 
     <div id="image-container">
         <div id="physical-anim-container" class="pulse-container">
-            <img id="img-afk" src="afk.png" class="heart-img active">
-            <img id="img-1" src="1.png" class="heart-img">
-            <img id="img-2" src="2.png" class="heart-img">
-            <img id="img-3" src="3.png" class="heart-img">
-            <img id="img-4" src="4.png" class="heart-img">
-            <img id="img-5" src="5.png" class="heart-img">
+            <img id="img-afk" class="heart-img active">
+            <img id="img-1" class="heart-img">
+            <img id="img-2" class="heart-img">
+            <img id="img-3" class="heart-img">
+            <img id="img-4" class="heart-img">
+            <img id="img-5" class="heart-img">
         </div>
     </div>
     
@@ -110,68 +45,62 @@
             ws.onmessage = function(event) {
                 const data = JSON.parse(event.data);
                 
-                // --- HANDLE PRO CONFIG & LAYOUT UPDATES ---
                 if (data.type === "config_update") {
                     config = data.config;
                     
-                    // 1. Set Custom Beat Intensity CSS Variable
+                    // Update Image Sources from Expert Mode Config
+                    document.getElementById("img-afk").src = config.imgAfk;
+                    document.getElementById("img-1").src = config.img1;
+                    document.getElementById("img-2").src = config.img2;
+                    document.getElementById("img-3").src = config.img3;
+                    document.getElementById("img-4").src = config.img4;
+                    document.getElementById("img-5").src = config.img5;
+
                     document.documentElement.style.setProperty('--main-scale-intensity', config.animScaleIntensity);
 
-                    // 2. Control Layout & Positioning via Flexbox
                     if (config.overlayLayout === "center") {
-                        // Stacked Layout: Text directly over the heart
-                        document.body.style.flexDirection = "row"; // Reset to row
+                        document.body.style.flexDirection = "row";
                         document.body.style.justifyContent = "center";
                         document.body.style.position = "relative";
                         imgFrame.style.position = "absolute";
                         bpmText.style.position = "absolute";
-                        bpmText.style.margin = "0"; // Centered stacked text needs no margin
+                        bpmText.style.margin = "0"; 
                     } else {
-                        // Row/Column Layouts: Text Right, Left, Top, or Bottom
                         document.body.style.flexDirection = config.overlayLayout;
-                        document.body.style.justifyContent = "flex-start"; // Default align to start
+                        document.body.style.justifyContent = "flex-start";
                         document.body.style.position = "static";
                         imgFrame.style.position = "relative";
                         bpmText.style.position = "static";
                         
-                        // Set standard text spacing based on flex direction
-                        if (config.overlayLayout === "row") bpmText.style.margin = `0 0 0 ${config.elementSpacing}px`; // Right
-                        else if (config.overlayLayout === "row-reverse") bpmText.style.margin = `0 ${config.elementSpacing}px 0 0`; // Left
-                        else if (config.overlayLayout === "column") bpmText.style.margin = `${config.elementSpacing}px 0 0 0`; // Bottom
-                        else if (config.overlayLayout === "column-reverse") bpmText.style.margin = `0 0 ${config.elementSpacing}px 0`; // Top
+                        if (config.overlayLayout === "row") bpmText.style.margin = `0 0 0 ${config.elementSpacing}px`;
+                        else if (config.overlayLayout === "row-reverse") bpmText.style.margin = `0 ${config.elementSpacing}px 0 0`;
+                        else if (config.overlayLayout === "column") bpmText.style.margin = `${config.elementSpacing}px 0 0 0`;
+                        else if (config.overlayLayout === "column-reverse") bpmText.style.margin = `0 0 ${config.elementSpacing}px 0`;
                     }
 
-                    // 3. Visual toggles
                     imgFrame.style.display = config.showImage ? "block" : "none";
                     bpmText.style.display = config.showText ? "block" : "none";
-                    
-                    // 4. Sizes
                     imgFrame.style.width = config.size + "px";
                     imgFrame.style.height = config.size + "px";
                     bpmText.style.fontSize = config.fontSize + "px";
                     
-                    // Kill animation if set to none
                     if (config.animationType === "none") {
                         physicalContainer.style.animation = "none";
                     }
                 }
                 
-                // --- HANDLE LIVE HEART RATE DATA & TRANSITIONS ---
                 if (data.type === "bpm_update") {
                     bpmText.innerText = data.bpm === "AFK" ? "AFK" : data.bpm + " BPM";
 
-                    // Smooth Image Crossfade
-                    const targetId = "img-" + data.image.replace('.png', '');
+                    const targetId = "img-" + data.state;
                     if (targetId !== currentImageId) {
                         document.getElementById(currentImageId).classList.remove("active");
                         document.getElementById(targetId).classList.add("active");
                         currentImageId = targetId;
                     }
 
-                    // Handle dynamic physical animations faster on BPM
                     if (config.animationType !== "none" && data.bpm !== "AFK" && typeof data.bpm === 'number') {
                         const secondsPerBeat = 60 / data.bpm;
-                        // Restart the animation with the correct speed and name
                         physicalContainer.style.animation = `anim-${config.animationType} ${secondsPerBeat}s infinite`;
                     } else if (data.bpm === "AFK" || config.animationType === "none") {
                         physicalContainer.style.animation = "none";
